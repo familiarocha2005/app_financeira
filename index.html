@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Orçamento Mensal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b2430;--mut:#6b7686;--bd:#e3e7ec;--inc:#0f9d58;--incbg:#e7f6ee;--exp:#d93025;--expbg:#fdeceb;--acc:#2b5fd9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1c222b;--tx:#e8ecf1;--mut:#97a2b1;--bd:#2c3440;--inc:#3ddc84;--incbg:#14301f;--exp:#ff6b60;--expbg:#3a1a18;--acc:#6f9bff;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:860px;margin:0 auto;padding:16px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:20px;margin:0}
+.nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.nav button,.btn{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:7px 11px;font:inherit;cursor:pointer}
+.nav b{min-width:130px;text-align:center;text-transform:capitalize}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}
+.c small{color:var(--mut);display:block}
+.c .v{font-size:22px;font-weight:700;margin:2px 0}
+.c .s{font-size:12px;color:var(--mut)}
+.c.i{border-top:4px solid var(--inc)}.c.i .v{color:var(--inc)}
+.c.e{border-top:4px solid var(--exp)}.c.e .v{color:var(--exp)}
+.c.a{border-top:4px solid var(--acc)}
+.neg{color:var(--exp)!important}.pos{color:var(--inc)!important}
+.sec{background:var(--card);border:1px solid var(--bd);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.sh{display:flex;justify-content:space-between;padding:10px 14px;font-weight:700}
+.sec.i .sh{background:var(--incbg);color:var(--inc)}.sec.e .sh{background:var(--expbg);color:var(--exp)}
+.row{display:grid;grid-template-columns:28px 1fr 110px 110px 28px;gap:8px;align-items:center;padding:8px 14px;border-top:1px solid var(--bd)}
+.row.hd{font-size:12px;color:var(--mut);padding:6px 14px}
+.row.paid .n{opacity:.6;text-decoration:line-through}
+.sec.i .row{border-left:4px solid var(--inc)}.sec.e .row{border-left:4px solid var(--exp)}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--acc)}
+input[type=text],input[type=number],input[type=email],input[type=password]{width:100%;padding:7px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:inherit}
+input:disabled{opacity:.45}
+.x{background:none;border:0;color:var(--mut);cursor:pointer;font-size:18px}
+.add{display:grid;grid-template-columns:1fr 110px auto;gap:8px;padding:10px 14px;border-top:1px solid var(--bd)}
+.sec.i .add button{background:var(--inc);color:#fff;border:0}.sec.e .add button{background:var(--exp);color:#fff;border:0}
+.add button{border-radius:8px;padding:7px 14px;font:inherit;cursor:pointer}
+.empty{padding:14px;color:var(--mut);text-align:center}
+.login{max-width:340px;margin:12vh auto;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:20px;display:grid;gap:10px}
+.login button{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:9px;font:inherit;cursor:pointer}
+.err{color:var(--exp);font-size:13px;min-height:1em}
+@media(max-width:560px){.row{grid-template-columns:24px 1fr 80px 80px 22px;gap:5px;padding:8px}.add{grid-template-columns:1fr 80px auto}}
+</style>
+</head>
+<body>
+<div class="w" id="app"></div>
+<script>
+/* ===== CONFIGURAR (Supabase > Project Settings > API) ===== */
+const SUPABASE_URL='https://ikfavjmagulkphyrmyym.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_4Shuo_-lL45kf2SCu0o-ZQ_nnOfTfb1';
+/* ========================================================= */
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const app=document.getElementById('app');
+let cur=new Date().toISOString().slice(0,7),L=[];
+const eur=n=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(n||0);
+const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?0:n};
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shift=d=>{const [y,m]=cur.split('-').map(Number);const dt=new Date(y,m-1+d,1);return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')};
+const eff=i=>i.concluido?(i.pago==null?i.orcado:i.pago):i.orcado;
+
+function loginView(msg){
+ app.innerHTML=`<div class="login"><h1>💶 Orçamento Mensal</h1>
+ <input type="email" id="em" placeholder="Email" autocomplete="username">
+ <input type="password" id="pw" placeholder="Palavra-passe" autocomplete="current-password">
+ <div class="err" id="er">${msg||''}</div><button id="go">Entrar</button></div>`;
+ const go=async()=>{const {error}=await sb.auth.signInWithPassword({email:em.value.trim(),password:pw.value});
+  if(error)er.textContent='Email ou palavra-passe incorretos.';else start()};
+ document.getElementById('go').onclick=go;
+ pw.onkeydown=e=>{if(e.key==='Enter')go()};
+}
+async function load(){
+ const {data,error}=await sb.from('lancamentos').select('*').eq('mes',cur).order('criado_em');
+ L=error?[]:data;render();
+}
+function render(){
+ const [y,m]=cur.split('-').map(Number);
+ const tot=(t,f)=>L.filter(i=>i.tipo===t).reduce((s,i)=>s+f(i),0);
+ const ib=tot('i',i=>i.orcado),eb=tot('e',i=>i.orcado);
+ const ip=tot('i',i=>i.concluido?eff(i):0),ep=tot('e',i=>i.concluido?eff(i):0);
+ const proj=tot('i',eff)-tot('e',eff),disp=ip-ep,cls=n=>n<0?'neg':'pos';
+ app.innerHTML=`<div class="top"><h1>💶 Orçamento Mensal</h1><div class="nav">
+  <button onclick="go(-1)">‹</button><b>${new Date(y,m-1,1).toLocaleDateString('pt-PT',{month:'long',year:'numeric'})}</b><button onclick="go(1)">›</button>
+  <button class="btn" onclick="copyPrev()">Copiar mês anterior</button><button class="btn" onclick="logout()">Sair</button></div></div>
+ <div class="grid">
+  <div class="c i"><small>Receitas</small><div class="v">+ ${eur(tot('i',eff))}</div><div class="s">Orçamentado ${eur(ib)} · Recebido ${eur(ip)}</div></div>
+  <div class="c e"><small>Despesas</small><div class="v">− ${eur(tot('e',eff))}</div><div class="s">Orçamentado ${eur(eb)} · Pago ${eur(ep)}</div></div>
+  <div class="c a"><small>Disponível agora</small><div class="v ${cls(disp)}">${eur(disp)}</div><div class="s">Recebido − pago</div></div>
+  <div class="c a"><small>Projetado fim do mês</small><div class="v ${cls(proj)}">${eur(proj)}</div><div class="s">Usa o valor pago quando marcado</div></div></div>
+ ${sec('i','Receitas','+')}${sec('e','Despesas','−')}`;
+}
+function sec(t,title,sign){
+ const R=L.filter(i=>i.tipo===t),total=R.reduce((s,i)=>s+eff(i),0);
+ let h=`<div class="sec ${t}"><div class="sh"><span>${title}</span><span>${sign} ${eur(total)}</span></div>`;
+ if(R.length){
+  h+=`<div class="row hd"><span></span><span>Descrição</span><span>Orçamentado</span><span>${t==='i'?'Recebido':'Pago'}</span><span></span></div>`;
+  R.forEach(i=>{h+=`<div class="row ${i.concluido?'paid':''}">
+   <input type="checkbox" ${i.concluido?'checked':''} onchange="tog('${i.id}',this.checked)">
+   <span class="n">${esc(i.descricao)}</span>
+   <input type="number" step="0.01" value="${i.orcado}" onchange="upd('${i.id}',{orcado:num(this.value)})">
+   <input type="number" step="0.01" value="${i.concluido?eff(i):''}" placeholder="—" ${i.concluido?'':'disabled'} onchange="upd('${i.id}',{pago:num(this.value)})">
+   <button class="x" onclick="del('${i.id}')">×</button></div>`});
+ }else h+=`<div class="empty">Sem ${title.toLowerCase()} neste mês.</div>`;
+ return h+`<div class="add"><input type="text" id="n${t}" placeholder="Descrição"><input type="number" step="0.01" id="v${t}" placeholder="€ 0,00"><button onclick="add('${t}')">Adicionar</button></div></div>`;
+}
+async function add(t){const d=document.getElementById('n'+t).value.trim();if(!d)return;
+ await sb.from('lancamentos').insert({mes:cur,tipo:t,descricao:d,orcado:num(document.getElementById('v'+t).value)});load()}
+async function tog(id,c){const i=L.find(x=>x.id===id);await sb.from('lancamentos').update({concluido:c,pago:c?i.orcado:null}).eq('id',id);load()}
+async function upd(id,p){await sb.from('lancamentos').update(p).eq('id',id);load()}
+async function del(id){await sb.from('lancamentos').delete().eq('id',id);load()}
+function go(d){cur=shift(d);load()}
+async function copyPrev(){
+ const {data}=await sb.from('lancamentos').select('tipo,descricao,orcado').eq('mes',shift(-1));
+ if(!data||!data.length){alert('O mês anterior não tem lançamentos.');return}
+ if(L.length&&!confirm('Adicionar os lançamentos do mês anterior aos já existentes?'))return;
+ await sb.from('lancamentos').insert(data.map(r=>({...r,mes:cur})));load()}
+async function logout(){await sb.auth.signOut();loginView()}
+async function start(){const {data}=await sb.auth.getSession();data.session?load():loginView()}
+start();
+</script>
+</body>
+</html>
