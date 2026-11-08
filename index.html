@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Orçamento Mensal</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2b5fd9">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Orçamento">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--tx:#1b2430;--mut:#6b7686;--bd:#e3e7ec;--inc:#0f9d58;--incbg:#e7f6ee;--exp:#d93025;--expbg:#fdeceb;--acc:#2b5fd9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -50,8 +57,8 @@ input:disabled{opacity:.45}
 <div class="w" id="app"></div>
 <script>
 /* ===== CONFIGURAR (Supabase > Project Settings > API) ===== */
-const SUPABASE_URL='https://ikfavjmagulkphyrmyym.supabase.co';
-const SUPABASE_ANON_KEY='sb_publishable_4Shuo_-lL45kf2SCu0o-ZQ_nnOfTfb1';
+const SUPABASE_URL='COLA_AQUI_O_PROJECT_URL';
+const SUPABASE_ANON_KEY='COLA_AQUI_A_ANON_PUBLIC_KEY';
 /* ========================================================= */
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const app=document.getElementById('app');
@@ -120,6 +127,7 @@ async function copyPrev(){
 async function logout(){await sb.auth.signOut();loginView()}
 async function start(){const {data}=await sb.auth.getSession();data.session?load():loginView()}
 start();
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
 </html>
