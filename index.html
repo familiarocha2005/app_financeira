@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Orçamento">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--tx:#1b2430;--mut:#6b7686;--bd:#e3e7ec;--inc:#0f9d58;--incbg:#e7f6ee;--exp:#d93025;--expbg:#fdeceb;--acc:#2b5fd9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -57,11 +58,10 @@ input:disabled{opacity:.45}
 <body>
 <div class="w" id="app"></div>
 <script>
-/* ===== CONFIGURAR (Supabase > Project Settings > API) ===== */
-const SUPABASE_URL='COLA_AQUI_O_PROJECT_URL';
-const SUPABASE_ANON_KEY='COLA_AQUI_A_ANON_PUBLIC_KEY';
-/* ========================================================= */
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const CFG=window.APP_CONFIG||{};
+const configOk=CFG.url&&CFG.key&&!/COLA_AQUI/.test(CFG.url+CFG.key);
+let sb=null;
+if(configOk){try{sb=supabase.createClient(CFG.url,CFG.key)}catch(e){}}
 const app=document.getElementById('app');
 let cur=new Date().toISOString().slice(0,7),L=[];
 const eur=n=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(n||0);
@@ -129,7 +129,8 @@ async function copyPrev(){
  if(L.length&&!confirm('Adicionar os lançamentos do mês anterior aos já existentes?'))return;
  await sb.from('lancamentos').insert(data.map(r=>({...r,mes:cur})));load()}
 async function logout(){await sb.auth.signOut();loginView()}
-async function start(){const {data}=await sb.auth.getSession();data.session?load():loginView()}
+async function start(){if(!sb){app.innerHTML='<div class="login"><h1>⚠️ Falta configurar</h1><p>Abre o ficheiro <b>config.js</b> no GitHub e cola o Project URL e a chave anon do Supabase.</p></div>';return}
+ const {data}=await sb.auth.getSession();data.session?load():loginView()}
 start();
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
