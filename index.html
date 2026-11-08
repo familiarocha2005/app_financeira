@@ -42,6 +42,7 @@ h1{font-size:20px;margin:0}
 input[type=checkbox]{width:20px;height:20px;accent-color:var(--acc)}
 input[type=text],input[type=number],input[type=email],input[type=password]{width:100%;padding:7px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:inherit}
 input:disabled{opacity:.45}
+.amt{text-align:right}
 .x{background:none;border:0;color:var(--mut);cursor:pointer;font-size:18px}
 .add{display:grid;grid-template-columns:1fr 110px auto;gap:8px;padding:10px 14px;border-top:1px solid var(--bd)}
 .sec.i .add button{background:var(--inc);color:#fff;border:0}.sec.e .add button{background:var(--exp);color:#fff;border:0}
@@ -57,14 +58,16 @@ input:disabled{opacity:.45}
 <div class="w" id="app"></div>
 <script>
 /* ===== CONFIGURAR (Supabase > Project Settings > API) ===== */
-const SUPABASE_URL='https://ikfavjmagulkphyrmyym.supabase.co';
-const SUPABASE_ANON_KEY='sb_publishable_4Shuo_-lL45kf2SCu0o-ZQ_nnOfTfb1';
+const SUPABASE_URL='COLA_AQUI_O_PROJECT_URL';
+const SUPABASE_ANON_KEY='COLA_AQUI_A_ANON_PUBLIC_KEY';
 /* ========================================================= */
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const app=document.getElementById('app');
 let cur=new Date().toISOString().slice(0,7),L=[];
 const eur=n=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(n||0);
-const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?0:n};
+const num=v=>{let s=String(v).replace(/[^\d,.\-]/g,'');if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');const n=parseFloat(s);return isNaN(n)?0:n};
+const fedit=el=>{if(el.value.trim()==='')return;const n=num(el.value);el.value=String(n).replace('.',',');el.select()};
+const fshow=el=>{if(el.value.trim()!=='')el.value=eur(num(el.value))};
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const shift=d=>{const [y,m]=cur.split('-').map(Number);const dt=new Date(y,m-1+d,1);return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')};
 const eff=i=>i.concluido?(i.pago==null?i.orcado:i.pago):i.orcado;
@@ -106,17 +109,18 @@ function sec(t,title,sign){
   h+=`<div class="row hd"><span></span><span>Descrição</span><span>Orçamentado</span><span>${t==='i'?'Recebido':'Pago'}</span><span></span></div>`;
   R.forEach(i=>{h+=`<div class="row ${i.concluido?'paid':''}">
    <input type="checkbox" ${i.concluido?'checked':''} onchange="tog('${i.id}',this.checked)">
-   <span class="n">${esc(i.descricao)}</span>
-   <input type="number" step="0.01" value="${i.orcado}" onchange="upd('${i.id}',{orcado:num(this.value)})">
-   <input type="number" step="0.01" value="${i.concluido?eff(i):''}" placeholder="—" ${i.concluido?'':'disabled'} onchange="upd('${i.id}',{pago:num(this.value)})">
+   <input type="text" class="n" value="${esc(i.descricao)}" onchange="renome('${i.id}',this)">
+   <input type="text" inputmode="decimal" class="amt" value="${eur(i.orcado)}" onfocus="fedit(this)" onblur="fshow(this)" onchange="upd('${i.id}',{orcado:num(this.value)})">
+   <input type="text" inputmode="decimal" class="amt" value="${i.concluido?eur(eff(i)):''}" placeholder="—" ${i.concluido?'':'disabled'} onfocus="fedit(this)" onblur="fshow(this)" onchange="upd('${i.id}',{pago:num(this.value)})">
    <button class="x" onclick="del('${i.id}')">×</button></div>`});
  }else h+=`<div class="empty">Sem ${title.toLowerCase()} neste mês.</div>`;
- return h+`<div class="add"><input type="text" id="n${t}" placeholder="Descrição"><input type="number" step="0.01" id="v${t}" placeholder="€ 0,00"><button onclick="add('${t}')">Adicionar</button></div></div>`;
+ return h+`<div class="add"><input type="text" id="n${t}" placeholder="Descrição"><input type="text" inputmode="decimal" class="amt" id="v${t}" placeholder="0,00 €" onfocus="fedit(this)" onblur="fshow(this)"><button onclick="add('${t}')">Adicionar</button></div></div>`;
 }
 async function add(t){const d=document.getElementById('n'+t).value.trim();if(!d)return;
  await sb.from('lancamentos').insert({mes:cur,tipo:t,descricao:d,orcado:num(document.getElementById('v'+t).value)});load()}
 async function tog(id,c){const i=L.find(x=>x.id===id);await sb.from('lancamentos').update({concluido:c,pago:c?i.orcado:null}).eq('id',id);load()}
 async function upd(id,p){await sb.from('lancamentos').update(p).eq('id',id);load()}
+function renome(id,el){const d=el.value.trim();if(!d){load();return}upd(id,{descricao:d})}
 async function del(id){await sb.from('lancamentos').delete().eq('id',id);load()}
 function go(d){cur=shift(d);load()}
 async function copyPrev(){
