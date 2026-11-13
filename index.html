@@ -52,6 +52,12 @@ input:disabled{opacity:.45}
 .login{max-width:340px;margin:12vh auto;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:20px;display:grid;gap:10px}
 .login button{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:9px;font:inherit;cursor:pointer}
 .err{color:var(--exp);font-size:13px;min-height:1em}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.dlg{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:14px;padding:18px;max-width:340px;width:100%}
+.dlg h2{margin:0 0 8px;font-size:18px}.dlg p{margin:6px 0}.dlg .s{color:var(--mut);font-size:13px}
+.bt{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.bt button{padding:11px;border-radius:8px;font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
+.bt .ok{background:var(--exp);border-color:var(--exp);color:#fff;font-weight:700}
 @media(max-width:560px){.row{grid-template-columns:24px 1fr 80px 80px 22px;gap:5px;padding:8px}.add{grid-template-columns:1fr 80px auto}}
 </style>
 </head>
@@ -121,7 +127,17 @@ async function add(t){const d=document.getElementById('n'+t).value.trim();if(!d)
 async function tog(id,c){const i=L.find(x=>x.id===id);await sb.from('lancamentos').update({concluido:c,pago:c?i.orcado:null}).eq('id',id);load()}
 async function upd(id,p){await sb.from('lancamentos').update(p).eq('id',id);load()}
 function renome(id,el){const d=el.value.trim();if(!d){load();return}upd(id,{descricao:d})}
-async function del(id){await sb.from('lancamentos').delete().eq('id',id);load()}
+function del(id){
+ const i=L.find(x=>x.id===id);if(!i)return;
+ const o=document.createElement('div');o.className='ov';
+ o.innerHTML=`<div class="dlg"><h2>Eliminar movimento?</h2><p><b>${esc(i.descricao)}</b><br>${i.tipo==='i'?'Receita':'Despesa'} · ${eur(i.orcado)}</p><p class="s">Esta ação não pode ser desfeita.</p><div class="bt"><button class="cn">Cancelar</button><button class="ok">Eliminar</button></div></div>`;
+ document.body.appendChild(o);
+ const close=()=>o.remove();
+ o.querySelector('.cn').onclick=close;
+ o.onclick=e=>{if(e.target===o)close()};
+ o.querySelector('.ok').onclick=async()=>{close();await sb.from('lancamentos').delete().eq('id',id);load()};
+ o.querySelector('.cn').focus();
+}
 function go(d){cur=shift(d);load()}
 async function copyPrev(){
  const {data}=await sb.from('lancamentos').select('tipo,descricao,orcado').eq('mes',shift(-1));
